@@ -54,7 +54,7 @@ function parsePost(string $file): array {
     $title = $meta['title'] ?? basename($file, '.md');
     $date = $meta['date'] ?? date('Y-m-d');
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) throw new RuntimeException("Data inválida em $file");
-    return ['title' => $title, 'slug' => slug($meta['slug'] ?? $title), 'date' => $date, 'status' => strtolower($meta['status'] ?? 'published'), 'publish_at' => $meta['publish_at'] ?? $date . ' 00:00:00', 'tags' => array_values(array_filter(array_map('trim', explode(',', $meta['tags'] ?? '')))), 'description' => $meta['description'] ?? '', 'body' => markdown($raw)];
+    return ['title' => $title, 'slug' => slug($meta['slug'] ?? $title), 'date' => $date, 'status' => strtolower($meta['status'] ?? 'published'), 'publish_at' => $meta['publish_at'] ?? $date . ' 00:00:00', 'tags' => array_values(array_filter(array_map('trim', explode(',', $meta['tags'] ?? '')))), 'categories' => array_values(array_filter(array_map('trim', explode(',', $meta['categories'] ?? '')))), 'series' => array_values(array_filter(array_map('trim', explode(',', $meta['series'] ?? '')))), 'author' => trim($meta['author'] ?? ''), 'cover' => trim($meta['cover'] ?? ''), 'description' => $meta['description'] ?? '', 'body' => markdown($raw)];
 }
 function render(string $template, array $values): string { return strtr($template, array_combine(array_map(static fn($k) => '%%' . $k . '%%', array_keys($values)), array_values($values))); }
 function save(string $file, string $contents): void { $dir = dirname($file); if (!is_dir($dir)) mkdir($dir, 0755, true); file_put_contents($file, $contents, LOCK_EX); }
@@ -81,24 +81,30 @@ if (!$posts) { fwrite(STDERR, "Nenhum post Markdown encontrado em content/.\n");
 
 $header = (string)file_get_contents($themeDir . 'header.php'); $footer = (string)file_get_contents($themeDir . 'footer.php');
 $card = (string)file_get_contents($themeDir . 'capa-post.php'); $single = (string)file_get_contents($themeDir . 'single-body.php');
-$baseUrl = $settings['BLOGURL']; $entries = []; $tagMap = [];
+$baseUrl = $settings['BLOGURL']; $entries = []; $tagMap = []; $taxonomies = ['category' => [], 'series' => [], 'author' => []];
 foreach ($posts as $post) {
     $url = $post['url'];
     foreach ($post['tags'] as $tag) $tagMap[$tag][] = $post;
+    foreach ($post['categories'] as $term) $taxonomies['category'][$term][] = $post;
+    foreach ($post['series'] as $term) $taxonomies['series'][$term][] = $post;
+    if ($post['author']) $taxonomies['author'][$post['author']][] = $post;
     $tagLinks = implode(', ', array_map(static fn($tag) => '<a href="tag-' . slug($tag) . '.html">' . esc($tag) . '</a>', $post['tags']));
     $values = array_replace($settings, ['POSTTITLE' => esc($post['title']), 'POSTDATE' => date('d/m/Y', strtotime($post['date'])), 'POSTBODY' => $post['body'], 'POSTNEWSBODY' => $post['body'], 'POSTTAGS' => $tagLinks, 'POSTURL' => $url, 'POSTSURLPREFIX' => '', 'PAGEURL' => $baseUrl . $url, 'PAGEDESC' => esc($post['description']), 'PAGETITLE' => esc($post['title'] . ' · ' . $blogparms['BLOGTITLE'])]);
     save($outputDir . '/' . $url, render($header, $values) . render($single, $values) . render($footer, $values));
     $entries[] = render($card, $values);
 }
 $indexValues = array_replace($settings, ['PAGETITLE' => $settings['BLOGTITLE'], 'PAGEDESC' => $settings['BLOGMOTTO'], 'PAGEURL' => $baseUrl, 'POSTSURLPREFIX' => '', 'POSTTITLE' => '', 'POSTDATE' => '', 'POSTBODY' => '', 'POSTTAGS' => '', 'POSTURL' => '']);
-save($outputDir . '/index.html', render($header, $indexValues) . implode("\n", $entries) . render($footer, $indexValues));
+$pageSize = max(1, (int)($blogparms['POSTS_PER_PAGE'] ?? 10)); $pages = array_chunk($entries, $pageSize);
+foreach ($pages as $number => $pageEntries) { $n = $number + 1; $nav = ''; if ($n > 1) $nav .= '<a class="prev" href="' . ($n === 2 ? 'index.html' : 'page/' . ($n - 1) . '.html') . '">← Mais recentes</a>'; if ($n < count($pages)) $nav .= '<a class="next" href="page/' . ($n + 1) . '.html">Mais antigos →</a>'; $v = $indexValues; $v['NAVLINKS'] = $nav; $v['PAGEURL'] = $baseUrl . ($n === 1 ? '' : 'page/' . $n . '.html'); save($outputDir . '/' . ($n === 1 ? 'index.html' : 'page/' . $n . '.html'), render($header, $v) . implode("\n", $pageEntries) . render($footer, $v)); }
 foreach ($tagMap as $tag => $tagPosts) {
     $body = '<header class="tag-header"><p class="eyebrow">TAG</p><h1>' . esc($tag) . '</h1></header>';
     foreach ($tagPosts as $post) $body .= '<article class="archive-item"><time>' . esc($post['date']) . '</time><h2><a href="' . esc($post['url']) . '">' . esc($post['title']) . '</a></h2></article>';
     $v = $indexValues; $v['PAGETITLE'] = 'Tag: ' . esc($tag); $v['PAGEURL'] = $baseUrl . 'tag-' . slug($tag) . '.html'; save($outputDir . '/tag-' . slug($tag) . '.html', render($header, $v) . $body . render($footer, $v));
 }
-$rss = '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>' . $settings['BLOGTITLE'] . '</title><link>' . esc($baseUrl) . '</link><description>' . $settings['BLOGMOTTO'] . '</description>';
-foreach ($posts as $post) $rss .= '<item><title>' . esc($post['title']) . '</title><link>' . esc($baseUrl . $post['url']) . '</link><pubDate>' . date(DATE_RSS, strtotime($post['date'])) . '</pubDate><description>' . esc(strip_tags($post['body'])) . '</description></item>';
+$archive = static function(string $kind, string $term, array $items) use ($header, $footer, $indexValues, $outputDir, $baseUrl): void { $body = '<header class="tag-header"><p class="eyebrow">' . strtoupper($kind) . '</p><h1>' . esc($term) . '</h1></header>'; foreach ($items as $post) $body .= '<article class="archive-item"><time>' . esc($post['date']) . '</time><h2><a href="' . esc($post['url']) . '">' . esc($post['title']) . '</a></h2></article>'; $v = $indexValues; $v['PAGETITLE'] = esc($term); $v['PAGEURL'] = $baseUrl . $kind . '-' . slug($term) . '.html'; save($outputDir . '/' . $kind . '-' . slug($term) . '.html', render($header, $v) . $body . render($footer, $v)); };
+foreach ($taxonomies as $kind => $terms) foreach ($terms as $term => $items) $archive($kind, $term, $items);
+$rss = '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>' . $settings['BLOGTITLE'] . '</title><link>' . esc($baseUrl) . '</link><description>' . $settings['BLOGMOTTO'] . '</description><language>pt-BR</language>';
+foreach ($posts as $post) $rss .= '<item><title>' . esc($post['title']) . '</title><link>' . esc($baseUrl . $post['url']) . '</link><pubDate>' . date(DATE_RSS, strtotime($post['date'])) . '</pubDate><description>' . esc(strip_tags($post['body'])) . '</description><content:encoded><![CDATA[' . $post['body'] . ']]></content:encoded></item>';
 save($outputDir . '/feed.xml', $rss . '</channel></rss>');
 $urls = array_merge([$baseUrl], array_map(static fn($post) => $baseUrl . $post['url'], $posts)); save($outputDir . '/sitemap.xml', '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . implode('', array_map(static fn($url) => '<url><loc>' . esc($url) . '</loc></url>', $urls)) . '</urlset>');
 $search = array_map(static fn($post) => ['title' => $post['title'], 'description' => $post['description'], 'url' => $post['url'], 'search' => strtolower($post['title'] . ' ' . $post['description'] . ' ' . implode(' ', $post['tags']))], $posts); save($outputDir . '/search.json', json_encode($search, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));

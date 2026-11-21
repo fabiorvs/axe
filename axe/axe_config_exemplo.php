@@ -40,6 +40,7 @@ $blogparms["BLOGOWNERTWITTER"] = 'donotwitter';
 $blogparms["NUMPOSTSFEED"] = '10';
 $blogparms["NUMPOSTSCOVER"] = '10';
 $blogparms["NUMFEATSCOVER"] = '2'; // numero de destaques na capa	
+$blogparms["POSTS_PER_PAGE"] = 10;
 $blogparms["EXIBIRPOPULARES"] = false;
 $blogparms["YEARLY"] = '';
 $blogparms["BREAKLINES"] = true;

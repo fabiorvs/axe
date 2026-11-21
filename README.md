@@ -46,6 +46,11 @@ e os assets do tema, execute `./scripts/build.sh`. Para validar a saída, execut
 `./scripts/validate.sh`; para testar que HTML de conteúdo é escapado, execute
 `./tests/safe-build.sh`.
 
+O front matter também aceita `status: draft`, `publish_at: 2026-12-01 09:00:00`,
+`categories`, `series`, `author` e `cover`. Use `./scripts/new-post.sh "Título"`
+para criar um rascunho, `./scripts/serve.sh` para pré-visualizar e
+`./scripts/optimize-assets.sh` para gerar WebP quando `cwebp` estiver instalado.
+
 O build padrão não executa conteúdo nem plugins PHP. Para migrar um descriptor legado
 estático, use `php scripts/migrate-legacy-post.php origem.php destino.md`; revise o
 Markdown gerado antes de publicá-lo. O servidor deve expor somente `public/` em produção;
