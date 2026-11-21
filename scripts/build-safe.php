@@ -89,7 +89,8 @@ foreach ($posts as $post) {
     foreach ($post['series'] as $term) $taxonomies['series'][$term][] = $post;
     if ($post['author']) $taxonomies['author'][$post['author']][] = $post;
     $tagLinks = implode(', ', array_map(static fn($tag) => '<a href="tag-' . slug($tag) . '.html">' . esc($tag) . '</a>', $post['tags']));
-    $values = array_replace($settings, ['POSTTITLE' => esc($post['title']), 'POSTDATE' => date('d/m/Y', strtotime($post['date'])), 'POSTBODY' => $post['body'], 'POSTNEWSBODY' => $post['body'], 'POSTTAGS' => $tagLinks, 'POSTURL' => $url, 'POSTSURLPREFIX' => '', 'PAGEURL' => $baseUrl . $url, 'PAGEDESC' => esc($post['description']), 'PAGETITLE' => esc($post['title'] . ' · ' . $blogparms['BLOGTITLE'])]);
+    $cover = $post['cover'] ? '<figure class="post-cover"><picture><source srcset="' . esc($post['cover']) . '.webp" type="image/webp"><img src="' . esc($post['cover']) . '" alt="' . esc($post['title']) . '" loading="lazy"></picture></figure>' : '';
+    $values = array_replace($settings, ['POSTTITLE' => esc($post['title']), 'POSTDATE' => date('d/m/Y', strtotime($post['date'])), 'POSTBODY' => $post['body'], 'POSTNEWSBODY' => $post['body'], 'POSTTAGS' => $tagLinks, 'POSTCOVER' => $cover, 'POSTURL' => $url, 'POSTSURLPREFIX' => '', 'PAGEURL' => $baseUrl . $url, 'PAGEDESC' => esc($post['description']), 'PAGETITLE' => esc($post['title'] . ' · ' . $blogparms['BLOGTITLE'])]);
     save($outputDir . '/' . $url, render($header, $values) . render($single, $values) . render($footer, $values));
     $entries[] = render($card, $values);
 }
@@ -106,8 +107,10 @@ foreach ($taxonomies as $kind => $terms) foreach ($terms as $term => $items) $ar
 $rss = '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>' . $settings['BLOGTITLE'] . '</title><link>' . esc($baseUrl) . '</link><description>' . $settings['BLOGMOTTO'] . '</description><language>pt-BR</language>';
 foreach ($posts as $post) $rss .= '<item><title>' . esc($post['title']) . '</title><link>' . esc($baseUrl . $post['url']) . '</link><pubDate>' . date(DATE_RSS, strtotime($post['date'])) . '</pubDate><description>' . esc(strip_tags($post['body'])) . '</description><content:encoded><![CDATA[' . $post['body'] . ']]></content:encoded></item>';
 save($outputDir . '/feed.xml', $rss . '</channel></rss>');
+foreach ($tagMap as $tag => $items) { $feed = '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>' . $settings['BLOGTITLE'] . ' · ' . esc($tag) . '</title>'; foreach ($items as $post) $feed .= '<item><title>' . esc($post['title']) . '</title><link>' . esc($baseUrl . $post['url']) . '</link></item>'; save($outputDir . '/feed-tag-' . slug($tag) . '.xml', $feed . '</channel></rss>'); }
 $urls = array_merge([$baseUrl], array_map(static fn($post) => $baseUrl . $post['url'], $posts)); save($outputDir . '/sitemap.xml', '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . implode('', array_map(static fn($url) => '<url><loc>' . esc($url) . '</loc></url>', $urls)) . '</urlset>');
 $search = array_map(static fn($post) => ['title' => $post['title'], 'description' => $post['description'], 'url' => $post['url'], 'search' => strtolower($post['title'] . ' ' . $post['description'] . ' ' . implode(' ', $post['tags']))], $posts); save($outputDir . '/search.json', json_encode($search, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 copyTree($themeDir, $outputDir . '/axethemes/' . rtrim($theme, '/'));
 if (is_dir($contentDir . '/assets')) copyTree($contentDir . '/assets', $outputDir . '/assets');
+save($outputDir . '/404.html', render($header, array_replace($indexValues, ['PAGETITLE' => 'Página não encontrada', 'PAGEDESC' => 'Erro 404'])) . '<article class="post-card"><p class="eyebrow">404</p><h1>Página não encontrada</h1><p>Volte para a <a href="' . $baseUrl . '">página inicial</a>.</p></article>' . render($footer, $indexValues));
 echo "Build seguro concluído: " . count($posts) . " post(s).\n";
