@@ -66,6 +66,9 @@ function copyTree(string $source, string $destination): void {
         else { if (!is_dir(dirname($target))) mkdir(dirname($target), 0755, true); copy($item->getPathname(), $target); }
     }
 }
+function cleanOutput(string $dir): void {
+    foreach (glob($dir . '/*') ?: [] as $path) { if (in_array(basename($path), ['.htaccess', '.gitkeep'], true)) continue; if (is_dir($path) && !is_link($path)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($path); } else unlink($path); }
+}
 
 $settings = [
     'BLOGTITLE' => esc((string)($blogparms['BLOGTITLE'] ?? 'Axe')), 'BLOGMOTTO' => esc((string)($blogparms['BLOGMOTTO'] ?? '')),
@@ -73,6 +76,7 @@ $settings = [
     'BLOGOWNER' => esc((string)($blogparms['BLOGOWNER'] ?? '')), 'YEAR' => date('Y'), 'AXEVERSION' => 'Axe Safe Build',
     'THEMESPATH' => esc((string)($blogparms['THEMESPATH'] ?? 'axethemes/')), 'THEME' => esc($theme), 'NAVLINKS' => '', 'PAGEURL' => '', 'PAGETITLE' => '', 'PAGEDESC' => '',
 ];
+cleanOutput($outputDir);
 $posts = array_values(array_filter(array_map('parsePost', glob($contentDir . '/*.md') ?: []), static fn($post) => $post['status'] === 'published' && strtotime($post['publish_at']) <= time()));
 foreach ($posts as &$post) $post['url'] = 'posts/' . $post['date'] . '-' . $post['slug'] . '.html';
 unset($post);
