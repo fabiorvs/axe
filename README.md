@@ -57,3 +57,6 @@ O build padrão não executa conteúdo nem plugins PHP. Para migrar um descripto
 estático, use `php scripts/migrate-legacy-post.php origem.php destino.md`; revise o
 Markdown gerado antes de publicá-lo. O servidor deve expor somente `public/` em produção;
 nunca exponha os diretórios `axe/`, `axethemes/` ou o arquivo de configuração.
+
+Para o preview padrão, execute `./scripts/serve.sh` e acesse `http://localhost:8080/`
+(sem `/public/` na URL), pois esse diretório já é a raiz do servidor.
