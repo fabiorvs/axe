@@ -40,7 +40,7 @@ O Axe está disponível sob a licença Apache 2.0.
 
 ## Desenvolvimento local
 
-Consulte o [guia de publicação e operação](docs/GUIA.md) para todos os campos do front matter, comandos e regras de deploy.
+Consulte o [guia completo de publicação e operação](docs/GUIA.md) para requisitos, configuração, front matter, imagens, build, preview, deploy, migração e solução de problemas.
 
 Copie `axe/axe_config_exemplo.php` para `axe/axe_config.php` e ajuste os caminhos.
 Os posts novos devem ficar em `content/`, em Markdown com front matter. Para gerar o site
