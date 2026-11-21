@@ -1,0 +1,31 @@
+# Configuração por ambiente: contém caminhos e URLs locais/privados.
+axe/axe_config.php
+axe/axe_filtraads.php
+.env
+.env.*
+
+# Conteúdo de trabalho e metadados gerados pelo fluxo de publicação.
+axe/staging/old/*
+!axe/staging/old/.gitkeep
+axe/drafts/*
+!axe/drafts/empty.txt
+!axe/drafts/old/
+axe/drafts/old/*
+!axe/drafts/old/.gitkeep
+axe/descriptors/posts/*
+!axe/descriptors/posts/.gitkeep
+axe/descriptors/tags/*
+!axe/descriptors/tags/.gitkeep
+
+# Saída gerada: publique esta pasta, mas não a versione.
+public/*
+!public/.gitkeep
+!public/.htaccess
+axepreview/*
+!axepreview/empty.txt
+
+# Arquivos transitórios criados durante escrita atômica ou execução local.
+*.temp
+*.log
+.DS_Store
+Thumbs.db

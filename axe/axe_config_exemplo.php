@@ -40,6 +40,9 @@ $blogparms["BLOGOWNERTWITTER"] = 'donotwitter';
 $blogparms["NUMPOSTSFEED"] = '10';
 $blogparms["NUMPOSTSCOVER"] = '10';
 $blogparms["NUMFEATSCOVER"] = '2'; // numero de destaques na capa	
+$blogparms["EXIBIRPOPULARES"] = false;
+$blogparms["YEARLY"] = '';
+$blogparms["BREAKLINES"] = true;
 
 # diretório em que está o axe no servidor:
 $axedir='/users/xxx/www/blog/axe/';

@@ -267,6 +267,7 @@ function loadpostvars() {
 			$transfpost["%%POSTTAGS%%"]="";
 		}
 		$transfpost["%%BODYAD%%"]=try_file_get_contents("bodyad.php");
+		$transfpost["%%POSTOLDCOMMENTS%%"]=$transfpost["%%POSTOLDCOMMENTS%%"] ?? "";
 		if (strlen(trim($transfpost["%%POSTOLDCOMMENTS%%"]))<15) $transfpost["%%POSTOLDCOMMENTS%%"]="Não há comentários arquivados";
 		else if (strlen(trim($transfpost["%%POSTOLDCOMMENTS%%"]))>40000) {
 			$transfpost["%%POSTOLDCOMMENTS%%"]=substr($transfpost["%%POSTOLDCOMMENTS%%"],0,40000);
@@ -298,7 +299,7 @@ function loadpostvars() {
 			$transfpost["%%POSTNAME%%"]=preg_replace('/aBaB/',blogparm('YEARLY'),$transfpost["%%POSTNAME%%"]);
 		}		
 		if (!isset($transfpost["%%POSTURL%%"])) {
-			$transfpost["%%POSTURL%%"]=$transfpost["%%POSTANOMES%%"]."/".$transfpost["%%POSTNAME%%"].".html";
+			$transfpost["%%POSTURL%%"]=$transfpost["%%POSTANOMES%%"]."/".($transfpost["%%POSTNAME%%"] ?? "").".html";
 		} else {
 			$caminho=preg_replace('/^https?:\/\/[^\/]*/',"",$transfpost["%%POSTURL%%"]);
 			if (substr_count($caminho,'/')<3) $caminho=$transfpost["%%POSTANOMES%%"].$caminho;
@@ -318,13 +319,13 @@ function loadpostvars() {
 		//$transfpost["%%POSTMID%%"]=strip_tags($transfpost["%%POSTMID%%"]);				
 		$transfpost["%%POSTBODY%%"]=paragrafos(corrigehtml($POST['POSTBODY']));		
 		$transfpost["%%POSTNEWSBODY%%"]=corrigehtml($POST['POSTBODY']);		
-		if (!isset($transfpost['POSTAUTHOR'])) {
+		if (!isset($transfpost['%%POSTAUTHOR%%'])) {
 			$transfpost['%%POSTAUTHOR%%']=blogparm('BLOGOWNER');
 			$transfpost['%%POSTAUTHORURL%%']=blogparm('BLOGOWNERURL');
 			$transfpost['%%POSTAUTHORTWITTER%%']=blogparm('BLOGOWNERTWITTER');		
 		}
 		$transfpost["%%POSTBIO%%"]=authorbio($transfpost['%%POSTAUTHOR%%']);		
-		if (!isset($transfpost['POSTTWIT'])) {
+		if (!isset($transfpost['%%POSTTWIT%%'])) {
 			$transfpost['%%POSTTWIT%%']=$transfpost['%%POSTTITLE%%'];
 		}
 		$transfpost['%%POSTTWIT%%']=$transfpost['%%POSTTWIT%%']." %CR%%CR%".blogparm('BLOGURL').blogparm('POSTSURLPREFIX').$transfpost['%%POSTURL%%'];		
@@ -421,7 +422,7 @@ function gera_draft($arquivo,$quiet=false) {
 				$saida.='$POST["POSTOLDCOMMENTS"]= <<< endPCPCPCaxe'."\n";
 				$saida.=$value."\n";
 				$saida.='endPCPCPCaxe;'."\n";		
-			} else $saida.="\$POST[$key]='".trim($value)."';\n";	
+			} else $saida.="\$POST['$key']='".trim($value)."';\n";
 		}
 		$saida.="?>";
 		if (isset($MYPOST['POSTTITLE'])) {
@@ -499,8 +500,7 @@ function cria_tagindex($tag,$force=false) {
 		for ($i=count($postsfiles)-1; $i >=0; $i--) {
 			if (0 == $contaitems % blogparm('NUMPOSTSCOVER')) {
 				setpagetitle("Tag: ".$tag." - ".blogparm('%%BLOGTITLE%%'));
-				$pageurl=blogparm('BLOGURL').preg_replace('/'.basename(blogparm('POSTSDIR')).'\//',"/",$nome);
-				setpageurl($pageurl);			
+				setpageurl(blogparm('BLOGURL')."tag-".$tag.".html");
 				$item=cover_header('tags');
 				$item.="<h1 style=\"margin-top:25px;\">Artigos marcados com a tag $tag</h1>";
 			}	
@@ -511,7 +511,7 @@ function cria_tagindex($tag,$force=false) {
 			//$myimportfile=blogparm('INPUTDIR').'posts/'.$k[1];
 			//include $myimportfile;
 			loadpostvars_fromcatalog($fpost);		
-			if(strtoupper($POST['POSTICON'])=="NEWS") {
+			if(strtoupper($POST['POSTICON'] ?? '')=="NEWS") {
 				$item.=cover_news('tags');
 			}	
 			else if ($contafeats<blogparm('NUMFEATSCOVER')) { 
@@ -563,6 +563,8 @@ function rebuild_tags($force=false) {
 *************************************************************************/
 
 function corrigehtml($trecho) {
+	$contarod=0;
+	$rodapes=array();
 	$transf = array("<i>" => "<em>", "</i>" => "</em>", 
 			"<*>" => "<span class=\"marker\">", "</*>" => "</span>", 
 			"<b>" => "<strong>", "</b>" => "</strong>",
@@ -938,6 +940,7 @@ function do_notify_post($texto) {
 function carrega_destaques() {
 // lê e ordena aleatoriamente o catálogo da tag destaques
 	global $DESTAQUE;
+	$DESTAQUE=array();
 	$catdestaque=blogparm('INPUTDIR')."tags/catalog-destaques.txt";
 	if(is_file($catdestaque)) {
 		$DESTAQUE=file($catdestaque);	
@@ -1331,7 +1334,7 @@ function rebuild_catalogs() {
 				}	
 				$linha=date("Y/m/d-H:i:s",strtotime($POST["POSTTIME"])).";;"; 
 				$linha.=$anomes.trim($POST["POSTNAME"]).".php;;".$POST["POSTTIME"].";;".$POST["POSTTITLE"].";;";
-				$linha.=$short.";;".$POST["POSTICON"].";;".time()."\n";
+				$linha.=$short.";;".($POST["POSTICON"] ?? '').";;".time()."\n";
 				dmsg($linha);
 				// grava no catálogo geral
 				if (!isset($iabertos["catalog.txt"])) {

@@ -1,0 +1,6 @@
+Options -Indexes
+
+# Arquivos .src.html existem apenas para edição local e não devem ser públicos.
+<FilesMatch "\.src\.html$">
+  Require all denied
+</FilesMatch>

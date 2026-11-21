@@ -28,8 +28,7 @@ function monthly_header($ano=0,$mes=0,$tipo='normal') {
 	setpageicon(substparms("%%BLOGURL%%%%THEMESPATH%%%%THEME%%images/apple-touch-icon.png"));
 	setpagedesc(blogparm('BLOGMOTTO'));		
 	setpagetitle(blogparm('BLOGTITLE'));
-	$pageurl=blogparm('BLOGURL').preg_replace('/'.basename(blogparm('POSTSDIR')).'\//',"/",$nome);
-	setpageurl($pageurl);	
+	setpageurl(blogparm('BLOGURL'));
 	$transfpost['%%POSTTWIT%%']=blogparm('BLOGTITLE')." ".blogparm('BLOGURL');
 	$tiheader=aplica_plugins('index',$tiheader,'header',$tipo);
 	$header=substpostvars(substparms($tiheader)); 

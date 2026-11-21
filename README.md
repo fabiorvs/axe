@@ -1,5 +1,9 @@
 <h1>AXE CMS</h1>
 
+> Este projeto é um fork do [Axe CMS](http://augustocampos.net/axe/blog/), criado por Augusto Campos. Mantém a proposta original de gerar blogs estáticos em PHP, com melhorias de compatibilidade com PHP atual, automação de build e validação, uma configuração local de desenvolvimento e o tema Lumen.
+
+O código original permanece sob a licença Apache 2.0. Consulte o histórico e a licença para os créditos completos.
+
 *ATUALIZAÇÃO EM 6.5.2026*
 
 Doze anos depois, o Axe ainda continua em uso, e sua base de código permanece a mesma desde a versão que disponibilizei aqui em 2013, exceto quanto a pequenas atualizações demandadas pela evolução da sintaxe do PHP em modo shell.
@@ -33,3 +37,16 @@ O Axe é a minha mais recente reinvenção de roda, porque é um sistema de gere
 </ul>
 
 O Axe está disponível sob a licença Apache 2.0.
+
+## Desenvolvimento local
+
+Copie `axe/axe_config_exemplo.php` para `axe/axe_config.php` e ajuste os caminhos.
+Os posts novos devem ficar em `content/`, em Markdown com front matter. Para gerar o site
+e os assets do tema, execute `./scripts/build.sh`. Para validar a saída, execute
+`./scripts/validate.sh`; para testar que HTML de conteúdo é escapado, execute
+`./tests/safe-build.sh`.
+
+O build padrão não executa conteúdo nem plugins PHP. Para migrar um descriptor legado
+estático, use `php scripts/migrate-legacy-post.php origem.php destino.md`; revise o
+Markdown gerado antes de publicá-lo. O servidor deve expor somente `public/` em produção;
+nunca exponha os diretórios `axe/`, `axethemes/` ou o arquivo de configuração.
