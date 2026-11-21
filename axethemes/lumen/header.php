@@ -24,7 +24,15 @@
       if (localStorage.getItem('axe-theme') === 'dark') document.documentElement.dataset.theme = 'dark';
       if (toggle) toggle.addEventListener('click', function () { var dark = document.documentElement.dataset.theme !== 'dark'; document.documentElement.dataset.theme = dark ? 'dark' : ''; localStorage.setItem('axe-theme', dark ? 'dark' : 'light'); });
       var search = document.getElementById('site-search'), results = document.getElementById('search-results');
-      if (search) fetch(document.querySelector('.brand').href + 'search.json').then(function (r) { return r.json(); }).then(function (posts) { search.addEventListener('input', function () { var q = search.value.toLowerCase().trim(); results.innerHTML = q ? posts.filter(function (p) { return p.search.indexOf(q) !== -1; }).slice(0, 8).map(function (p) { return '<a class="search-result" href="' + p.url + '"><strong>' + p.title + '</strong><br><small>' + p.description + '</small></a>'; }).join('') : ''; }); });
+      if (search) {
+        var searchUrl = new URL('search.json', document.querySelector('.brand').href);
+        fetch(searchUrl, { headers: { Accept: 'application/json' } }).then(function (response) {
+          if (!response.ok || !(response.headers.get('content-type') || '').includes('application/json')) throw new Error('Índice de busca indisponível');
+          return response.json();
+        }).then(function (posts) {
+          search.addEventListener('input', function () { var q = search.value.toLowerCase().trim(); results.innerHTML = q ? posts.filter(function (p) { return p.search.indexOf(q) !== -1; }).slice(0, 8).map(function (p) { return '<a class="search-result" href="' + p.url + '"><strong>' + p.title + '</strong><br><small>' + p.description + '</small></a>'; }).join('') : ''; });
+        }).catch(function () { search.placeholder = 'Busca indisponível nesta prévia'; search.disabled = true; });
+      }
     });
   </script>
 </head>
