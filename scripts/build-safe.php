@@ -54,7 +54,7 @@ function parsePost(string $file): array {
     $title = $meta['title'] ?? basename($file, '.md');
     $date = $meta['date'] ?? date('Y-m-d');
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) throw new RuntimeException("Data inválida em $file");
-    return ['title' => $title, 'slug' => slug($meta['slug'] ?? $title), 'date' => $date, 'tags' => array_values(array_filter(array_map('trim', explode(',', $meta['tags'] ?? '')))), 'description' => $meta['description'] ?? '', 'body' => markdown($raw)];
+    return ['title' => $title, 'slug' => slug($meta['slug'] ?? $title), 'date' => $date, 'status' => strtolower($meta['status'] ?? 'published'), 'publish_at' => $meta['publish_at'] ?? $date . ' 00:00:00', 'tags' => array_values(array_filter(array_map('trim', explode(',', $meta['tags'] ?? '')))), 'description' => $meta['description'] ?? '', 'body' => markdown($raw)];
 }
 function render(string $template, array $values): string { return strtr($template, array_combine(array_map(static fn($k) => '%%' . $k . '%%', array_keys($values)), array_values($values))); }
 function save(string $file, string $contents): void { $dir = dirname($file); if (!is_dir($dir)) mkdir($dir, 0755, true); file_put_contents($file, $contents, LOCK_EX); }
@@ -73,7 +73,7 @@ $settings = [
     'BLOGOWNER' => esc((string)($blogparms['BLOGOWNER'] ?? '')), 'YEAR' => date('Y'), 'AXEVERSION' => 'Axe Safe Build',
     'THEMESPATH' => esc((string)($blogparms['THEMESPATH'] ?? 'axethemes/')), 'THEME' => esc($theme), 'NAVLINKS' => '', 'PAGEURL' => '', 'PAGETITLE' => '', 'PAGEDESC' => '',
 ];
-$posts = array_map('parsePost', glob($contentDir . '/*.md') ?: []);
+$posts = array_values(array_filter(array_map('parsePost', glob($contentDir . '/*.md') ?: []), static fn($post) => $post['status'] === 'published' && strtotime($post['publish_at']) <= time()));
 foreach ($posts as &$post) $post['url'] = 'posts/' . $post['date'] . '-' . $post['slug'] . '.html';
 unset($post);
 usort($posts, static fn($a, $b) => strcmp($b['date'], $a['date']));
@@ -101,5 +101,7 @@ $rss = '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title
 foreach ($posts as $post) $rss .= '<item><title>' . esc($post['title']) . '</title><link>' . esc($baseUrl . $post['url']) . '</link><pubDate>' . date(DATE_RSS, strtotime($post['date'])) . '</pubDate><description>' . esc(strip_tags($post['body'])) . '</description></item>';
 save($outputDir . '/feed.xml', $rss . '</channel></rss>');
 $urls = array_merge([$baseUrl], array_map(static fn($post) => $baseUrl . $post['url'], $posts)); save($outputDir . '/sitemap.xml', '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . implode('', array_map(static fn($url) => '<url><loc>' . esc($url) . '</loc></url>', $urls)) . '</urlset>');
+$search = array_map(static fn($post) => ['title' => $post['title'], 'description' => $post['description'], 'url' => $post['url'], 'search' => strtolower($post['title'] . ' ' . $post['description'] . ' ' . implode(' ', $post['tags']))], $posts); save($outputDir . '/search.json', json_encode($search, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 copyTree($themeDir, $outputDir . '/axethemes/' . rtrim($theme, '/'));
+if (is_dir($contentDir . '/assets')) copyTree($contentDir . '/assets', $outputDir . '/assets');
 echo "Build seguro concluído: " . count($posts) . " post(s).\n";
